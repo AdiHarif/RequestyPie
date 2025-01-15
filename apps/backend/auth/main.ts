@@ -40,7 +40,7 @@ router.get("/callback", async (context) => {
   }).then((res) => res.json()).then((data) => data.access_token);
 
   context.cookies.set("userToken", userToken, { sameSite: "lax" });
-  context.response.redirect("http://localhost:8001/song-request");
+  context.response.redirect("http://localhost:8003/dashboard");
 
 });
 

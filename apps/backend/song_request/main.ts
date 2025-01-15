@@ -30,15 +30,20 @@ const router = new Router();
 
 router.get("/song-request", async (context) => {
   const userToken = await context.cookies.get("userToken")!;
-
+  if (!userToken) {
+    console.log("Token is empty");
+    context.response.status = 401;
+    context.response.body = "Unauthorized";
+    return;
+  }
   const userRes = await fetch(`${spotifyBaseUrl}/me`, {
     headers: {
       Authorization: `Bearer ${userToken}`,
     }
   });
   if (!userRes.ok) {
-    console.log(userRes);
-    console.log("Token: ", userToken);
+    // console.log(userRes);
+    console.log(await userRes.text());
     context.response.status = 401;
     context.response.body = "Unauthorized";
     return;
@@ -46,6 +51,8 @@ router.get("/song-request", async (context) => {
 
   const requestsArray = Array.from(requests.entries());
   context.response.body = requestsArray;
+  context.response.headers.set("Access-Control-Allow-Origin", "*");
+  context.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 });
 
 router.post("/song-request", async (context) => {
@@ -75,17 +82,24 @@ router.post("/song-request", async (context) => {
   context.response.body = requestId;
 });
 
-router.delete("/song-request", async (context) => {
-  const { requestId } = await context.request.body.json();
-  // TODO: check if request exists in the body of the request
+router.delete("/song-request/:requestId", async (context) => {
+  // const { requestId } = await context.request.body.json();
+  const requestId = context.params.requestId;
+  if (requestId === undefined) {
+    context.response.status = 400;
+    context.response.body = "Bad request";
+    return;
+  }
+  // TODO: authenticate user
   requests.delete(requestId);
-
+  console.log(requests.size);
   context.response.status = 204;
 });
 
-router.post("/song-request/approve", async (context) => {
+router.put("/song-request/:id/approve", async (context) => {
+  // TODO: do better authentication here
   const userToken = await context.cookies.get("userToken")!;
-  const { requestId } = await context.request.body.json();
+  const requestId = context.params.id;
   const trackId = requests.get(requestId)?.trackId;
 
   const queueRequest = new Request(`${spotifyBaseUrl}/me/player/queue?uri=spotify:track:${trackId}`, {
@@ -100,6 +114,7 @@ router.post("/song-request/approve", async (context) => {
     return;
   }
   context.response.body = 'Song queued!';
+  requests.delete(requestId);
 });
 
 const app = new Application();
