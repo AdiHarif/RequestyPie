@@ -1,12 +1,11 @@
 {
+  "workspace": [
+    "./apps/backend/song-request",
+    "./apps/backend/auth",
+    "./apps/backend/twitch-listener"
+  ],
+
   "tasks": {
-    "start:song_request": "deno run --allow-net --allow-env --env-file apps/backend/song_request/main.ts",
-    "watch:song_request": "deno run --watch --allow-net --allow-env --env-file apps/backend/song_request/main.ts",
-
-    "start:auth": "deno run --allow-net --allow-env --env-file apps/backend/auth/main.ts",
-    "watch:auth": "deno run --watch --allow-net --allow-env --env-file apps/backend/auth/main.ts",
-
-    "start:twitch_listener": "deno run --allow-net --allow-env --env-file apps/backend/twitch_listener/main.ts",
-    "watch:twitch_listener": "deno run --watch --allow-net --allow-env --env-file apps/backend/twitch_listener/main.ts"
+    "run:all": "deno task -f song-request start & deno task -f auth start & deno task -f twitch-listener start & sh -c 'cd apps/frontend/host && npm run dev'"
   }
 }

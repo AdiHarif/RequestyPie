@@ -10,7 +10,7 @@ const res = await fetch(
   {
     headers: {
       "Authorization": `Bearer ${userToken}`,
-      "Client-Id": twitchClientId,
+      "Client-Id": twitchClientId!,
     },
   },
 );
