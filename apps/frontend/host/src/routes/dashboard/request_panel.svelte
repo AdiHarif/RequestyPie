@@ -4,6 +4,7 @@
 
 
 <div class="panel">
+    <img class="image" src="{songRequest.trackInfo.album.images[0].url}" alt="Album cover" width="100" height="100">
     <div class="info">
         <p>
             <span style="font-weight: bold;">{songRequest.trackInfo.name}</span>
@@ -25,6 +26,10 @@
         width: 65%;
         justify-content: center;
         align-items: center;
+    }
+
+    .image {
+        margin-right: 1em;
     }
 
     .info {
