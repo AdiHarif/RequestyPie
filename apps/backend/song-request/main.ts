@@ -78,15 +78,18 @@ router.post("/song-request", async (context) => {
 
   const trackInfo = await trackRes.json();
 
-  const requestId = (await db.insert(songRequestSchema).values({
+  await db.insert(songRequestSchema).values({
     trackId,
     requester,
     status: "pending",
     trackInfo
-  }).returning({ insertedId: songRequestSchema.id}))[0];
+  });
 
   context.response.status = 201;
-  context.response.body = requestId;
+  context.response.body = {
+    trackName: trackInfo.name,
+    artists: trackInfo.artists.map((artist: any) => artist.name).join(", "),
+  };
 });
 
 router.delete("/song-request/:requestId", async (context) => {

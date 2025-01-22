@@ -79,6 +79,28 @@ ws.onmessage = async (event) => {
           console.log(await res.text());
           return;
       }
+
+      const trackInfo = await res.json();
+      const feedbackMessage = `Song request received: ${trackInfo.trackName} by ${trackInfo.artists}`;
+
+      const feedbackRes = await fetch("https://api.twitch.tv/helix/chat/messages", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${userToken}`,
+          "Client-Id": twitchClientId,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          "broadcaster_id": broadcasterId,
+          "sender_id": broadcasterId,
+          "message": feedbackMessage,
+          "reply_parent_message_id": data.payload.event.message_id,
+        }),
+      });
+      if (!feedbackRes.ok) {
+        console.log("Failed to send feedback message");
+        console.log(await feedbackRes.text());
+      }
       return;
     }
     console.log(`Received a non command message: ${message}`);
