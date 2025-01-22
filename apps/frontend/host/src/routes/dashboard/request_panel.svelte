@@ -1,5 +1,5 @@
 <script>
-    const { requestId, songRequest } = $props();
+    const { songRequest } = $props();
 </script>
 
 
@@ -12,8 +12,8 @@
         </p>
         <p>Requester: {songRequest.requester}</p>
     </div>
-    <button onclick={() => fetch(`http://localhost:8003/api/song-requests/${requestId}/approve`, { method: "PUT" })}>Approve</button>
-    <button onclick={() => fetch(`http://localhost:8003/api/song-requests/${requestId}`, { method: "DELETE" })}>Reject</button>
+    <button onclick={() => fetch(`http://localhost:8003/api/song-requests/${songRequest.id}/approve`, { method: "PUT" })}>Approve</button>
+    <button onclick={() => fetch(`http://localhost:8003/api/song-requests/${songRequest.id}`, { method: "DELETE" })}>Reject</button>
 </div>
 
 <style>

@@ -2,6 +2,12 @@
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq } from "drizzle-orm";
+import { songRequestSchema } from "./schema.ts";
+import pg from "npm:pg";
+const { Pool } = pg;
+
 const clientID = Deno.env.get("SPOTIFY_CLIENT_ID")!;
 const clientSecret = Deno.env.get("SPOTIFY_CLIENT_SECRET")!;
 
@@ -18,13 +24,12 @@ const res = await fetch(spotifyTokenUrl, {
 });
 const appToken = (await res.json()).access_token;
 
-interface SongRequest {
-  trackId: string;
-  requester: string;
-  trackInfo: any;
-};
-
-const requests = new Map<string, SongRequest>();
+export const db = drizzle({
+  client: new Pool({
+    connectionString: Deno.env.get("DATABASE_URL"),
+  }),
+  schema: { songRequestSchema },
+});
 
 const router = new Router();
 
@@ -49,8 +54,9 @@ router.get("/song-request", async (context) => {
     return;
   }
 
-  const requestsArray = Array.from(requests.entries());
-  context.response.body = requestsArray;
+  const requests = await db.select().from(songRequestSchema).where(eq(songRequestSchema.status, "pending"));
+  context.response.body = requests;
+
   context.response.headers.set("Access-Control-Allow-Origin", "*");
   context.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 });
@@ -72,35 +78,36 @@ router.post("/song-request", async (context) => {
 
   const trackInfo = await trackRes.json();
 
-  const requestId = crypto.randomUUID().substring(0, 8);
-
-  requests.set(requestId, { trackId, requester, trackInfo });
-
-  console.log(requests.size);
+  const requestId = (await db.insert(songRequestSchema).values({
+    trackId,
+    requester,
+    status: "pending",
+    trackInfo
+  }).returning({ insertedId: songRequestSchema.id}))[0];
 
   context.response.status = 201;
   context.response.body = requestId;
 });
 
 router.delete("/song-request/:requestId", async (context) => {
-  // const { requestId } = await context.request.body.json();
-  const requestId = context.params.requestId;
+  const requestId = parseInt(context.params.requestId);
   if (requestId === undefined) {
     context.response.status = 400;
     context.response.body = "Bad request";
     return;
   }
   // TODO: authenticate user
-  requests.delete(requestId);
-  console.log(requests.size);
+  await db.update(songRequestSchema).set({ status: "denied" }).where(eq(songRequestSchema.id, requestId));
   context.response.status = 204;
 });
 
 router.put("/song-request/:id/approve", async (context) => {
   // TODO: do better authentication here
   const userToken = await context.cookies.get("userToken")!;
-  const requestId = context.params.id;
-  const trackId = requests.get(requestId)?.trackId;
+  const requestId = parseInt(context.params.id);
+
+  // TODO: check if request exists
+  const { trackId } = (await db.select().from(songRequestSchema).where(eq(songRequestSchema.id, requestId)))[0];
 
   const queueRequest = new Request(`${spotifyBaseUrl}/me/player/queue?uri=spotify:track:${trackId}`, {
     method: "POST",
@@ -113,8 +120,10 @@ router.put("/song-request/:id/approve", async (context) => {
     console.log(await queueRes.text());
     return;
   }
+
+  await db.update(songRequestSchema).set({ status: "approved" }).where(eq(songRequestSchema.id, requestId));
+
   context.response.body = 'Song queued!';
-  requests.delete(requestId);
 });
 
 const app = new Application();

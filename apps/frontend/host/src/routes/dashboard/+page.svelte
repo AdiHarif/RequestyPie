@@ -2,10 +2,9 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
-    import RequestPane from "./request_panel.svelte";
     import RequestPanel from "./request_panel.svelte";
 
-    const uri = 'http://localhost:8003/api/song-requests';
+    const uri = '/api/song-requests';
 
     let promise: Promise<any>;
     onMount(() => {
@@ -18,8 +17,8 @@
 {#await promise}
     <p>Loading...</p>
 {:then data}
-    {#each data as [requestId, songRequest] (requestId)}
-        <RequestPanel {requestId} {songRequest} />
+    {#each data as songRequest (songRequest.id)}
+        <RequestPanel {songRequest} />
     {:else}
         <p>No requests to show</p>
     {/each}
