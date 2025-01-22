@@ -6,19 +6,25 @@
 
     const uri = '/api/song-requests';
 
-    let promise: Promise<any>;
+    let requests: any[] = $state([])
+
+    let promise = $state();
     onMount(() => {
-        promise = fetch(uri).then(res => res.json());
+        promise = fetch(uri).then(res => res.json()).then(data => requests = data);
     });
+
+    const actionCallback = (id: number) => {
+        requests = requests.filter(request => request.id !== id);
+    }
 
 </script>
 
 <div class="list">
 {#await promise}
     <p>Loading...</p>
-{:then data}
-    {#each data as songRequest (songRequest.id)}
-        <RequestPanel {songRequest} />
+{:then _}
+    {#each requests as songRequest (songRequest.id)}
+        <RequestPanel {songRequest} {actionCallback} />
     {:else}
         <p>No requests to show</p>
     {/each}

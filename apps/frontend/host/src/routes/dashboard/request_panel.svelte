@@ -1,5 +1,15 @@
 <script>
-    const { songRequest } = $props();
+    const { songRequest, actionCallback } = $props();
+
+    const approveRequest = async () => {
+        await fetch(`/api/song-requests/${songRequest.id}/approve`, { method: "PUT" });
+        actionCallback(songRequest.id);
+    }
+
+    const rejectRequest = async () => {
+        await fetch(`/api/song-requests/${songRequest.id}`, { method: "DELETE" });
+        actionCallback(songRequest.id);
+    }
 </script>
 
 
@@ -13,8 +23,8 @@
         </p>
         <p>Requester: {songRequest.requester}</p>
     </div>
-    <button onclick={() => fetch(`http://localhost:8003/api/song-requests/${songRequest.id}/approve`, { method: "PUT" })}>Approve</button>
-    <button onclick={() => fetch(`http://localhost:8003/api/song-requests/${songRequest.id}`, { method: "DELETE" })}>Reject</button>
+    <button onclick={() => approveRequest()}>Approve</button>
+    <button onclick={() => rejectRequest()}>Reject</button>
 </div>
 
 <style>
