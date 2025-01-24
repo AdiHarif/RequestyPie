@@ -1,4 +1,9 @@
 
+import * as log from "jsr:@std/log";
+import { setupLogger } from "@scope/shared";
+
+setupLogger("song-request");
+
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
@@ -36,19 +41,19 @@ const router = new Router();
 router.get("/song-request", async (context) => {
   const userToken = await context.cookies.get("userToken")!;
   if (!userToken) {
-    console.log("Token is empty");
+    log.error("GET /song-request - Request does not contain userToken cookie");
     context.response.status = 401;
     context.response.body = "Unauthorized";
     return;
   }
+
   const userRes = await fetch(`${spotifyBaseUrl}/me`, {
     headers: {
       Authorization: `Bearer ${userToken}`,
     }
   });
   if (!userRes.ok) {
-    // console.log(userRes);
-    console.log(await userRes.text());
+    log.error("GET /song-request - userToken is invalid");
     context.response.status = 401;
     context.response.body = "Unauthorized";
     return;
@@ -69,8 +74,9 @@ router.post("/song-request", async (context) => {
       Authorization: `Bearer ${appToken}`,
     }
   });
+
   if (!trackRes.ok) {
-    console.log(await trackRes.text());
+    log.error("POST /song-request - trackId is invalid");
     context.response.status = 404;
     context.response.body = "Track not found";
     return;
@@ -95,10 +101,12 @@ router.post("/song-request", async (context) => {
 router.delete("/song-request/:requestId", async (context) => {
   const requestId = parseInt(context.params.requestId);
   if (requestId === undefined) {
+    log.error("DELETE /song-request - requestId is invalid");
     context.response.status = 400;
     context.response.body = "Bad request";
     return;
   }
+
   // TODO: authenticate user
   await db.update(songRequestSchema).set({ status: "denied" }).where(eq(songRequestSchema.id, requestId));
   context.response.status = 204;
@@ -120,7 +128,7 @@ router.put("/song-request/:id/approve", async (context) => {
   });
   const queueRes = await fetch(queueRequest);
   if (!queueRes.ok) {
-    console.log(await queueRes.text());
+    log.error(`PUT /song-request/${context.params.id}/approve - Failed to queue song`);
     return;
   }
 
@@ -135,4 +143,4 @@ app.use(router.allowedMethods());
 
 app.listen({ port: 8001 });
 
-console.log("Server running on http://localhost:8001");
+log.info("Server running on http://localhost:8001");

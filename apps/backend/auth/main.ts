@@ -1,4 +1,9 @@
 
+import * as log from "jsr:@std/log";
+import { setupLogger } from "@scope/shared";
+
+setupLogger("auth");
+
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
@@ -50,4 +55,4 @@ app.use(router.allowedMethods());
 
 app.listen({ port: 8000 });
 
-console.log("Server running on http://localhost:8000");
+log.info("Server running on http://localhost:8000");

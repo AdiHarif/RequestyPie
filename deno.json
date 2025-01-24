@@ -2,7 +2,8 @@
   "workspace": [
     "./apps/backend/song-request",
     "./apps/backend/auth",
-    "./apps/backend/twitch-listener"
+    "./apps/backend/twitch-listener",
+    "./apps/backend/shared"
   ],
 
   "tasks": {

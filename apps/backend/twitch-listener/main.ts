@@ -1,3 +1,9 @@
+
+import * as log from "jsr:@std/log";
+import { setupLogger } from "@scope/shared";
+
+setupLogger("twitch-listener");
+
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
@@ -52,19 +58,19 @@ ws.onmessage = async (event) => {
       // TODO: handle faulty song requests better and write something in chat as feedback
       const link = message.split(" ")[1];
       if (!link) {
-        console.log("No link provided");
+        log.error("!sr - No link provided");
         return;
       }
       if (!link.startsWith("https://open.spotify.com/")) {
-        console.log("Invalid link provided: " + link);
+        log.error(`!sr - Invalid link provided (${link})`);
         return;
       }
       const trackId = link.split("/track/")[1].split("?")[0];
       if (!trackId) {
-        console.log("Invalid link provided: " + link);
+        log.error(`!sr - Invalid link provided (${link})`);
         return;
       }
-      console.log(`Received a song request: ${trackId} by ${data.payload.event.chatter_user_name}`);
+      log.info(`!sr - Received a song request - ${trackId} by ${data.payload.event.chatter_user_name}`);
       const res = await fetch('http://localhost:8001/song-request', {
         method: 'POST',
         headers: {
@@ -76,8 +82,8 @@ ws.onmessage = async (event) => {
         }),
       });
       if (!res.ok) {
-          console.log(await res.text());
-          return;
+        log.error("!sr - Failed to send song request to song-request service");
+        return;
       }
 
       const trackInfo = await res.json();
@@ -98,14 +104,13 @@ ws.onmessage = async (event) => {
         }),
       });
       if (!feedbackRes.ok) {
-        console.log("Failed to send feedback message");
-        console.log(await feedbackRes.text());
+        log.error("!sr - Failed to send feedback message");
       }
       return;
     }
-    console.log(`Received a non command message: ${message}`);
+    log.info(`Received a non command message - ${message}`);
   } else {
-    console.log(`Received an unhandled WS message type: ${type}`);
+    log.warn(`Received an unhandled WS message type (${type})`);
   }
 };
 
@@ -119,4 +124,4 @@ app.use(router.allowedMethods());
 
 app.listen({ port: 8002 });
 
-console.log("Twitch listener running on http://localhost:8002");
+log.info("Twitch listener running on http://localhost:8002");
