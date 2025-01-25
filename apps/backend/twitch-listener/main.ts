@@ -109,6 +109,8 @@ ws.onmessage = async (event) => {
       return;
     }
     log.info(`Received a non command message - ${message}`);
+  } else if (type == "session_keepalive") {
+    /* do nothing */
   } else {
     log.warn(`Received an unhandled WS message type (${type})`);
   }
