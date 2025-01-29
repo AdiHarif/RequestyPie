@@ -108,7 +108,7 @@ ws.onmessage = async (event) => {
       }
       return;
     }
-    log.info(`Received a non command message - ${message}`);
+    log.debug(`Received a non command message - ${message}`);
   } else if (type == "session_keepalive") {
     /* do nothing */
   } else {
