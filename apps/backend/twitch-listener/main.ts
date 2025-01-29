@@ -65,6 +65,10 @@ ws.onmessage = async (event) => {
         log.error(`!sr - Invalid link provided (${link})`);
         return;
       }
+      if (!link.includes("/track/")) {
+        log.error(`!sr - Invalid link provided (${link})`);
+        return;
+      }
       const trackId = link.split("/track/")[1].split("?")[0];
       if (!trackId) {
         log.error(`!sr - Invalid link provided (${link})`);
