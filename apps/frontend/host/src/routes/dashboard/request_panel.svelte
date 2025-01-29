@@ -33,7 +33,7 @@
         padding: 1em;
         margin: 1em;
         display: flex;
-        width: 65%;
+        width: 70%;
         justify-content: center;
         align-items: center;
     }

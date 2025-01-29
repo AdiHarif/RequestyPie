@@ -59,8 +59,10 @@ router.get("/song-request", async (context) => {
     return;
   }
 
+  const username = (await userRes.json()).display_name;
+
   const requests = await db.select().from(songRequestSchema).where(eq(songRequestSchema.status, "pending"));
-  context.response.body = requests;
+  context.response.body = { requests, username };
 
   context.response.headers.set("Access-Control-Allow-Origin", "*");
   context.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
