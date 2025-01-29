@@ -13,18 +13,18 @@
 </script>
 
 
-<div class="panel">
+<div class="panel preset-tonal-primary">
     <img class="image" src="{songRequest.trackInfo.album.images[0].url}" alt="Album cover" width="100" height="100">
     <div class="info">
         <p>
-            <span style="font-weight: bold;">{songRequest.trackInfo.name}</span>
+            <span style="font-weight: bold">{songRequest.trackInfo.name}</span>
             by
             <span style="font-weight: bold;">{songRequest.trackInfo.artists.map(artist => artist.name)}</span>
         </p>
         <p>Requester: {songRequest.requester}</p>
     </div>
-    <button onclick={() => approveRequest()}>Approve</button>
-    <button onclick={() => rejectRequest()}>Reject</button>
+    <button class="btn preset-filled-primary-500" onclick={() => approveRequest()}>Approve</button>
+    <button class="btn preset-filled-primary-500" onclick={() => rejectRequest()}>Reject</button>
 </div>
 
 <style>

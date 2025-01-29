@@ -1,10 +1,6 @@
 
 <!-- TODO: Change the name here -->
-<h1>Welcome to the Spotify Song Request Bot!</h1>
-<h2><a href="http://localhost:8000/login">Login with Spotify</a></h2>
-
-<style>
-    h1, h2 {
-        text-align: center;
-    }
-</style>
+<div class="flex flex-col items-center">
+    <h1 class="h1 text-primary-500 m-10">Welcome to the Spotify Song Request Bot!</h1>
+    <a class="btn btn-lg rounded-full preset-filled-primary-500" href="http://localhost:8000/login">Login with Spotify</a>
+</div>
