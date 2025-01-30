@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import forms from '@tailwindcss/forms';
 
 import { skeleton, contentPath } from '@skeletonlabs/skeleton/plugin';
 import * as themes from '@skeletonlabs/skeleton/themes';
@@ -14,6 +15,7 @@ export default {
   },
 
   plugins: [
+    forms,
     skeleton({
       themes: [
         themes.cerberus

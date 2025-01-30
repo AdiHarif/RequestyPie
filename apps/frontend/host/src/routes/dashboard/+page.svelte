@@ -5,6 +5,7 @@
     import { onMount } from "svelte";
 
     import RequestPanel from "./request_panel.svelte";
+    import SettingsButton from "./settings_button.svelte";
 
     const uri = '/api/song-requests';
 
@@ -32,7 +33,13 @@
     <p>Loading...</p>
 {:then _}
 
-    <AppBar headlineClasses="ml-[15%]">
+    <AppBar headlineClasses="ml-[15%]" trailClasses="mr-[15%]">
+        {#snippet lead()}
+            <!-- Dummy -->
+        {/snippet}
+        {#snippet trail()}
+            <SettingsButton />
+        {/snippet}
         {#snippet headline()}
             <h2 class="h2">{username}'s Listening Queue requests</h2>
         {/snippet}
