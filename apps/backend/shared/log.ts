@@ -7,7 +7,11 @@ export function setupLogger(moduleName: string) {
             console: new log.ConsoleHandler("NOTSET", {
                 formatter: (logRecord) => {
                     const dateTime = new Date().toLocaleString(undefined, { hour12: false });
-                    return `${dateTime} ${logRecord.levelName} [${moduleName}]: ${logRecord.msg}`;
+                    let message = `${dateTime} ${logRecord.levelName} [${moduleName}]: ${logRecord.msg}`;
+                    if (logRecord.args.length > 0) {
+                        message += ` (${logRecord.args.join(" ")})`;
+                    }
+                    return message;
                 },
             }),
         },
