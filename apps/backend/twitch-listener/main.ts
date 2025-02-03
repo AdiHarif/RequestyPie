@@ -62,6 +62,8 @@ router.post("/eventsub", async (context) => {
   }
 
   else if (messageType === "notification") {
+    context.response.status = 204;
+
     const data = await context.request.body.json();
     const message = data.event.message.text;
 
@@ -122,7 +124,6 @@ router.post("/eventsub", async (context) => {
         log.error("!sr - Failed to send feedback message");
         return;
       }
-      context.response.status = 204;
       return;
     }
   }
