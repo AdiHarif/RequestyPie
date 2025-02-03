@@ -7,6 +7,13 @@ setupLogger("twitch-listener");
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
+import { verifyMessageSignature } from "./twitch-api.ts";
+
+if (Deno.env.get("TWITCH_LISTENER_SECRET") === undefined) {
+  log.critical("Twitch listener secret not set");
+  Deno.exit(1);
+}
+
 const clientId = Deno.env.get("TWITCH_CLIENT_ID");
 const clientSecret = Deno.env.get("TWITCH_CLIENT_SECRET");
 
@@ -34,7 +41,12 @@ log.info("Received new app token for Twitch API");
 const router = new Router();
 
 router.post("/eventsub", async (context) => {
-  //TODO: validate the message signature
+  if (!await verifyMessageSignature(context.request)) {
+    log.warn("Received a message with an invalid signature");
+    context.response.status = 403;
+    return;
+  }
+
 
   const messageType = context.request.headers.get("twitch-eventsub-message-type");
   log.debug(`Received a message of type ${messageType}`);
@@ -108,7 +120,9 @@ router.post("/eventsub", async (context) => {
       });
       if (!feedbackRes.ok) {
         log.error("!sr - Failed to send feedback message");
+        return;
       }
+      context.response.status = 204;
       return;
     }
   }
@@ -154,7 +168,7 @@ router.post("/subscriptions", async (context) => { // * subscribe to a (new) twi
       "transport": {
         "method": "webhook",
         "callback": `${Deno.env.get("TWITCH_LISTENER_URL")}/eventsub`,
-        "secret": "1234567890"
+        "secret": `${Deno.env.get("TWITCH_LISTENER_SECRET")}`,
       },
     }),
   });
