@@ -114,7 +114,7 @@ router.post("/eventsub", async (context) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          "broadcaster_id": 587721529, //TODO: get this from the subscription
+          "broadcaster_id": data.event.broadcaster_user_id,
           "sender_id": Deno.env.get("TWITCH_USER_ID"),
           "message": feedbackMessage,
           "reply_parent_message_id": data.event.message_id,
