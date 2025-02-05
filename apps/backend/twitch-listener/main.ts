@@ -9,10 +9,23 @@ import { Router } from "jsr:@oak/oak/router";
 
 import { verifyMessageSignature } from "./twitch-api.ts";
 
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq } from "drizzle-orm";
+import { eventSubSchema } from "./schema.ts";
+import pg from "npm:pg";
+const { Pool } = pg;
+
 if (Deno.env.get("TWITCH_LISTENER_SECRET") === undefined) {
   log.critical("Twitch listener secret not set");
   Deno.exit(1);
 }
+
+export const db = drizzle({
+  client: new Pool({
+    connectionString: Deno.env.get("DATABASE_URL"),
+  }),
+  schema: { eventSubSchema },
+});
 
 const clientId = Deno.env.get("TWITCH_CLIENT_ID");
 const clientSecret = Deno.env.get("TWITCH_CLIENT_SECRET");
@@ -140,14 +153,6 @@ router.post("/eventsub", async (context) => {
   }
 });
 
-type Subscription = {
-  subscriptionId: string;
-  twitchUserId: string;
-  requestyPieUserId: string;
-}
-
-//TODO: store this in a database
-const subscriptions: Subscription[] = [];
 
 router.post("/subscriptions", async (context) => { // * subscribe to a (new) twitch channel
   const { twitchUserId, requestyPieUserId } = await context.request.body.json();
@@ -180,26 +185,19 @@ router.post("/subscriptions", async (context) => { // * subscribe to a (new) twi
     return;
   }
 
-  const subscriptionId = (await res.json()).data[0].id;
-  subscriptions.push({ subscriptionId, twitchUserId, requestyPieUserId });
+  const eventSubId = (await res.json()).data[0].id;
+  // TODO: handle db failure
+  await db.insert(eventSubSchema).values({ eventSubId, requestyPieUserId });
   log.info(`Subscribed to chat messages from ${twitchUserId} for user ${requestyPieUserId}`);
 
   context.response.status = 201;
-  context.response.body = { subscriptionId };
-
+  context.response.body = { eventSubId };
 });
 
 router.delete("/subscriptions/:id", async (context) => { // * unsubscribe from a twitch channel
-  const subscriptionId = context.params.id;
+  const eventSubId = context.params.id;
 
-  const subscription = subscriptions.find((sub) => sub.subscriptionId === subscriptionId);
-  if (!subscription) {
-    log.error(`Subscription with id ${subscriptionId} not found`);
-    context.response.status = 404;
-    return;
-  }
-
-  const res = await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`, {
+  const res = await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${eventSubId}`, {
     method: "DELETE",
     headers: {
       "Authorization": `Bearer ${appToken}`,
@@ -213,8 +211,14 @@ router.delete("/subscriptions/:id", async (context) => { // * unsubscribe from a
     return;
   }
 
-  subscriptions.splice(subscriptions.indexOf(subscription), 1);
-  log.info(`Unsubscribed from chat messages from ${subscription.twitchUserId} for user ${subscription.requestyPieUserId}`);
+  const dbRes = await db.delete(eventSubSchema).where(eq(eventSubSchema.eventSubId, eventSubId)).returning();
+  if (dbRes.length === 0) {
+    log.error(`EventSub with id ${eventSubId} not found`);
+    context.response.status = 404;
+    return;
+  }
+
+  log.info(`Unsubscribed from chat messages for requestyPie user ${dbRes[0].requestyPieUserId}`);
 
   context.response.status = 204;
 });
