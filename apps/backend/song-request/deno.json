@@ -5,9 +5,5 @@
   "tasks": {
     "start": "deno run --allow-net --allow-env --env-file main.ts",
     "watch": "deno run --watch --allow-net --allow-env --env-file main.ts"
-  },
-  "imports": {
-    "drizzle-kit": "npm:drizzle-kit@^0.30.2",
-    "drizzle-orm": "npm:drizzle-orm@^0.38.4"
   }
 }

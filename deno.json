@@ -7,6 +7,16 @@
   ],
 
   "tasks": {
-    "run:all": "deno task -f song-request start & deno task -f auth start & deno task -f twitch-listener start & sh -c 'cd apps/frontend/host && npm run dev'"
+    "run:all": "deno task -f song-request start & deno task -f auth start & deno task -f twitch-listener start & sh -c 'cd apps/frontend/host && npm run dev'",
+
+    "db:generate": "deno run --node-modules-dir -A --env-file npm:drizzle-kit generate --config apps/backend/drizzle.config.ts",
+    "db:push": "deno run --node-modules-dir -A --env-file npm:drizzle-kit push --config apps/backend/drizzle.config.ts"
+  },
+
+  "nodeModulesDir":"auto",
+
+  "imports": {
+    "drizzle-kit": "npm:drizzle-kit@^0.30.4",
+    "drizzle-orm": "npm:drizzle-orm@^0.39.1"
   }
 }
