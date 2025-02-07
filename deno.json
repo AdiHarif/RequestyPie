@@ -7,7 +7,9 @@
   ],
 
   "tasks": {
-    "run:all": "deno task -f song-request start & deno task -f auth start & deno task -f twitch-listener start & sh -c 'cd apps/frontend/host && npm run dev'",
+    "start:all": "deno task -f song-request start & deno task -f auth start & deno task -f twitch-listener start & sh -c 'cd apps/frontend/host && npm run preview'",
+    "watch:all": "deno task -f song-request watch & deno task -f auth watch & deno task -f twitch-listener watch & sh -c 'cd apps/frontend/host && npm run dev'",
+
 
     "db:generate": "deno run --node-modules-dir -A --env-file npm:drizzle-kit generate --config apps/backend/drizzle.config.ts",
     "db:push": "deno run --node-modules-dir -A --env-file npm:drizzle-kit push --config apps/backend/drizzle.config.ts"
