@@ -8,7 +8,7 @@ import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { songRequestSchema } from "./schema.ts";
 import pg from "npm:pg";
 const { Pool } = pg;
@@ -100,43 +100,51 @@ router.post("/song-request", async (context) => {
   };
 });
 
-router.delete("/song-request/:requestId", async (context) => {
-  const requestId = parseInt(context.params.requestId);
-  if (requestId === undefined) {
-    log.error("DELETE /song-request - requestId is invalid");
+router.patch("/song-request", async (context) => {
+  const userToken = await context.cookies.get("userToken");
+  if (!userToken) {
+    log.error("PATCH /song-request - Request does not contain userToken cookie");
+    context.response.status = 401;
+    context.response.body = "Unauthorized";
+    return;
+  }
+
+  const { requestIds, status } = await context.request.body.json();
+  if (!requestIds || !(status !== "approved" || status !== "denied")) {
+    log.error("PATCH /song-request - requestIds or status is invalid");
+    log.debug(requestIds, status);
     context.response.status = 400;
     context.response.body = "Bad request";
     return;
   }
 
-  // TODO: authenticate user
-  await db.update(songRequestSchema).set({ status: "denied" }).where(eq(songRequestSchema.id, requestId));
-  context.response.status = 204;
-});
+  if (status === "approved") {
+    const promises = (await db.select({trackId: songRequestSchema.trackId}).from(songRequestSchema).where(inArray(songRequestSchema.id, requestIds)))
+      .map((row) =>
+        fetch(`${spotifyBaseUrl}/me/player/queue?uri=spotify:track:${row.trackId}`, {
+          method: "POST",
+          headers: {
+            'Authorization': `Bearer ${userToken}`
+          }
+        })
+      );
+    const results = await Promise.all(promises);
 
-router.put("/song-request/:id/approve", async (context) => {
-  // TODO: do better authentication here
-  const userToken = await context.cookies.get("userToken")!;
-  const requestId = parseInt(context.params.id);
-
-  // TODO: check if request exists
-  const { trackId } = (await db.select().from(songRequestSchema).where(eq(songRequestSchema.id, requestId)))[0];
-
-  const queueRequest = new Request(`${spotifyBaseUrl}/me/player/queue?uri=spotify:track:${trackId}`, {
-    method: "POST",
-    headers: {
-      'Authorization': `Bearer ${userToken}`
+    // TODO: better handle failures
+    for (const res of results) {
+      if (!res.ok) {
+        log.error("PATCH /song-request - Failed to queue song", await res.text());
+        context.response.status = 500;
+        return;
+      }
     }
-  });
-  const queueRes = await fetch(queueRequest);
-  if (!queueRes.ok) {
-    log.error(`PUT /song-request/${context.params.id}/approve - Failed to queue song`);
-    return;
   }
 
-  await db.update(songRequestSchema).set({ status: "approved" }).where(eq(songRequestSchema.id, requestId));
+  await db.update(songRequestSchema).set({ status }).where(inArray(songRequestSchema.id, requestIds));
 
-  context.response.body = 'Song queued!';
+  log.info(`PATCH /song-request - ${(status === "approved" ? "Approved" : "Denied")} ${requestIds.length} request(s)`);
+  context.response.status = 204;
+
 });
 
 const app = new Application();

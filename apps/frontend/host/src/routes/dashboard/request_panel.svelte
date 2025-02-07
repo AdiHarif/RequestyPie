@@ -1,13 +1,13 @@
-<script>
+<script lang="ts">
     const { songRequest, actionCallback } = $props();
 
-    const approveRequest = async () => {
-        await fetch(`/api/song-requests/${songRequest.id}/approve`, { method: "PUT" });
-        actionCallback(songRequest.id);
-    }
+    const route = '/api/song-requests';
 
-    const rejectRequest = async () => {
-        await fetch(`/api/song-requests/${songRequest.id}`, { method: "DELETE" });
+    const changeRequestStatus = async (status: string) => {
+        await fetch(route, {
+            method: "PATCH",
+            body: JSON.stringify({ requestIds: [songRequest.id], status }),
+        });
         actionCallback(songRequest.id);
     }
 </script>
@@ -19,12 +19,12 @@
         <p>
             <span style="font-weight: bold">{songRequest.trackInfo.name}</span>
             by
-            <span style="font-weight: bold;">{songRequest.trackInfo.artists.map(artist => artist.name)}</span>
+            <span style="font-weight: bold;">{songRequest.trackInfo.artists.map((artist: any) => artist.name)}</span>
         </p>
         <p>Requester: {songRequest.requester}</p>
     </div>
-    <button class="btn preset-filled-primary-500" onclick={() => approveRequest()}>Approve</button>
-    <button class="btn preset-filled-primary-500" onclick={() => rejectRequest()}>Reject</button>
+    <button class="btn preset-filled-primary-500" onclick={() => changeRequestStatus("approved")}>Approve</button>
+    <button class="btn preset-filled-primary-500" onclick={() => changeRequestStatus("denied")}>Reject</button>
 </div>
 
 <style>

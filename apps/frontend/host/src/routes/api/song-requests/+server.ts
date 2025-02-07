@@ -15,3 +15,20 @@ export const GET: RequestHandler = async (event) => {
 
     return json(data);
 };
+
+export const PATCH: RequestHandler = async (event) => {
+    const uri = `http://localhost:8001/song-request`;
+    console.log('PATCH', uri);
+    const body = await (event.request as Request).text();
+    console.log(body);
+    return fetch(uri,
+        {
+            method: 'PATCH',
+            credentials: "include",
+            headers: {
+                cookie: event.request.headers.get('cookie') || ''
+            },
+            body
+        });
+    };
+
