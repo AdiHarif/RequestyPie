@@ -4,6 +4,7 @@
 
     import { onMount } from "svelte";
 
+    import QueuePanel from "./queue_panel.svelte";
     import RequestPanel from "./request_panel.svelte";
     import SettingsButton from "./settings_button.svelte";
 
@@ -24,6 +25,22 @@
         requests = requests.filter(request => request.id !== id);
     }
 
+    const replyToAll = async (status: string) => {
+        await fetch(uri, {
+            method: "PATCH",
+            body: JSON.stringify({
+                status,
+                requestIds: requests.map(request => request.id)
+            }),
+        });
+        requests = [];
+    }
+    const approveAll = async () => {
+        replyToAll("approved");
+    }
+    const rejectAll = async () => {
+        replyToAll("denied");
+    }
 </script>
 
 
@@ -44,6 +61,10 @@
             <h2 class="h2">{username}'s Listening Queue requests</h2>
         {/snippet}
     </AppBar>
+
+    <hr class="hr" />
+    <QueuePanel {rejectAll} {approveAll}/>
+    <hr class="hr" />
 
     {#each requests as songRequest (songRequest.id)}
         <RequestPanel {songRequest} {actionCallback} />
