@@ -63,7 +63,7 @@
     </AppBar>
 
     <hr class="hr" />
-    <QueuePanel {rejectAll} {approveAll}/>
+    <QueuePanel {rejectAll} {approveAll} disabled={requests.length == 0}/>
     <hr class="hr" />
 
     {#each requests as songRequest (songRequest.id)}

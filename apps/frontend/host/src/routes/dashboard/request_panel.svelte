@@ -23,8 +23,8 @@
         </p>
         <p>Requester: {songRequest.requester}</p>
     </div>
-    <button class="btn preset-filled-primary-500" onclick={() => changeRequestStatus("approved")}>Approve</button>
-    <button class="btn preset-filled-primary-500" onclick={() => changeRequestStatus("denied")}>Reject</button>
+    <button class="btn preset-filled-success-500" onclick={() => changeRequestStatus("approved")}>Approve</button>
+    <button class="btn preset-filled-error-500" onclick={() => changeRequestStatus("denied")}>Reject</button>
 </div>
 
 <style>
