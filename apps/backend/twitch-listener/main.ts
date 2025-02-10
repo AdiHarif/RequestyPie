@@ -15,6 +15,8 @@ import { eventSubSchema } from "./schema.ts";
 import pg from "npm:pg";
 const { Pool } = pg;
 
+import * as es from "./eventsub.ts";
+
 if (Deno.env.get("TWITCH_LISTENER_SECRET") === undefined) {
   log.critical("Twitch listener secret not set");
   Deno.exit(1);
@@ -60,96 +62,25 @@ router.post("/eventsub", async (context) => {
     return;
   }
 
-
   const messageType = context.request.headers.get("twitch-eventsub-message-type");
   log.debug(`Received a message of type ${messageType}`);
 
-  if (messageType === "webhook_callback_verification") {
-    const challenge = (await context.request.body.json()).challenge;
-    log.debug(`Received a challenge: ${challenge}`);
+  context.response.status = 204;
 
-    context.response.headers.set("Content-Type", "text/plain");
-    context.response.body = challenge;
-    context.response.status = 200;
-    return;
-  }
-
-  else if (messageType === "notification") {
-    context.response.status = 204;
-
-    const data = await context.request.body.json();
-    const message = data.event.message.text;
-
-    if (message.startsWith("!sr")) {
-      // TODO: handle faulty song requests better and write something in chat as feedback
-      const link = message.split(" ")[1];
-      if (!link) {
-        log.error("!sr - No link provided");
-        return;
-      }
-      if (!link.startsWith("https://open.spotify.com/")) {
-        log.error(`!sr - Invalid link provided (${link})`);
-        return;
-      }
-      if (!link.includes("/track/")) {
-        log.error(`!sr - Invalid link provided (${link})`);
-        return;
-      }
-      const trackId = link.split("/track/")[1].split("?")[0];
-      if (!trackId) {
-        log.error(`!sr - Invalid link provided (${link})`);
-        return;
-      }
-      log.info(`!sr - Received a song request - ${trackId} by ${data.event.chatter_user_name}`);
-      const res = await fetch('http://localhost:8001/song-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          trackId,
-          requester: data.event.chatter_user_name,
-        }),
-      });
-      if (!res.ok) {
-        log.error("!sr - Failed to send song request to song-request service");
-        return;
-      }
-
-      const trackInfo = await res.json();
-      const feedbackMessage = `Song request received: ${trackInfo.trackName} by ${trackInfo.artists}`;
-
-      const feedbackRes = await fetch("https://api.twitch.tv/helix/chat/messages", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${appToken}`,
-          "Client-Id": clientId,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          "broadcaster_id": data.event.broadcaster_user_id,
-          "sender_id": Deno.env.get("TWITCH_USER_ID"),
-          "message": feedbackMessage,
-          "reply_parent_message_id": data.event.message_id,
-        }),
-      });
-      if (!feedbackRes.ok) {
-        log.error("!sr - Failed to send feedback message");
-        return;
-      }
+  switch (messageType) {
+    case "webhook_callback_verification":
+      es.verificationHandler(context);
       return;
-    }
-  }
-  else if (messageType === "revocation") {
-    //TODO: handle subscription revocation
-    log.error("Subscription revoked", await context.request.body.text());
-    context.response.status = 204;
-    return;
-  }
-  else {
-    log.error(`Unknown message type: ${messageType}`);
-    context.response.status = 400;
-    return;
+    case "notification":
+      es.notificationHandler(context, appToken);
+      return;
+    case "revocation":
+      es.revocationHandler(context);
+      return;
+    default:
+      log.error(`Unknown message type: ${messageType}`);
+      context.response.status = 400;
+      return;
   }
 });
 
