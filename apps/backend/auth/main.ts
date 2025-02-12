@@ -35,16 +35,22 @@ router.get("/login", async (context) => {
 router.get("/callback", async (context) => {
   const code = context.request.url.searchParams.get('code');
 
-  const userToken = await fetch(`${spotifyTokenUrl}`, {
+  const userTokenRes = await fetch(`${spotifyTokenUrl}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       "Authorization": `Basic ${btoa(`${clientID}:${clientSecret}`)}`
     },
     body: `grant_type=authorization_code&code=${code}&redirect_uri=${redirectUri}`,
-  }).then((res) => res.json()).then((data) => data.access_token);
+  }).then((res) => res.json());
+
+  const userToken = userTokenRes.access_token;
+  const refreshToken = userTokenRes.refresh_token;
+  const expiresIn = userTokenRes.expires_in;
 
   context.cookies.set("userToken", userToken, { sameSite: "lax" });
+  context.cookies.set("refreshToken", refreshToken, { sameSite: "lax" });
+  context.cookies.set("expirationDate", (Date.now() + (expiresIn * 1000)).toString(), { sameSite: "lax" });
   context.response.redirect("http://localhost:8003/dashboard");
 
 });

@@ -38,13 +38,60 @@ export const db = drizzle({
 
 const router = new Router();
 
+async function refreshUserToken(refreshToken: string) {
+  const res = await fetch(spotifyTokenUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${btoa(`${clientID}:${clientSecret}`)}`,
+    },
+    body: `grant_type=refresh_token&refresh_token=${refreshToken}`,
+  });
+
+  if (!res.ok) {
+    log.error("GET /song-request - Failed to refresh userToken", await res.text());
+    return { newToken: "", newRefreshToken: "", expirationDate: "" };
+  }
+
+  const userTokenRes = await res.json();
+  const newToken = userTokenRes.access_token;
+  const expiresIn = userTokenRes.expires_in;
+
+  let newRefreshToken = userTokenRes.refresh_token;
+  if (!newRefreshToken) {
+    newRefreshToken = refreshToken;
+  }
+
+  return { newToken, newRefreshToken, expirationDate: Date.now() + (expiresIn * 1000) };
+}
+
+
 router.get("/song-request", async (context) => {
-  const userToken = await context.cookies.get("userToken")!;
+  let userToken = await context.cookies.get("userToken")!;
   if (!userToken) {
     log.error("GET /song-request - Request does not contain userToken cookie");
     context.response.status = 401;
     context.response.body = "Unauthorized";
     return;
+  }
+
+  if (Date.now() > parseInt((await context.cookies.get("expirationDate"))!)) {
+    log.info("GET /song-request - UserToken has expired, refreshing");
+    const refreshToken = await context.cookies.get("refreshToken");
+
+    const { newToken, newRefreshToken, expirationDate } = await refreshUserToken(refreshToken!);
+
+    if (!newToken) {
+      log.error("GET /song-request - Failed to refresh userToken");
+      context.response.status = 401;
+      context.response.body = "Unauthorized";
+      return;
+    }
+
+    userToken = newToken;
+    context.cookies.set("userToken", newToken, { sameSite: "lax" });
+    context.cookies.set("refreshToken", newRefreshToken, { sameSite: "lax" });
+    context.cookies.set("expirationDate", expirationDate.toString(), { sameSite: "lax" });
   }
 
   const userRes = await fetch(`${spotifyBaseUrl}/me`, {
@@ -101,12 +148,31 @@ router.post("/song-request", async (context) => {
 });
 
 router.patch("/song-request", async (context) => {
-  const userToken = await context.cookies.get("userToken");
+  let userToken = await context.cookies.get("userToken");
   if (!userToken) {
     log.error("PATCH /song-request - Request does not contain userToken cookie");
     context.response.status = 401;
     context.response.body = "Unauthorized";
     return;
+  }
+
+  if (Date.now() > parseInt((await context.cookies.get("expirationDate"))!)) {
+    log.info("PATCH /song-request - UserToken has expired, refreshing");
+    const refreshToken = await context.cookies.get("refreshToken");
+
+    const { newToken, newRefreshToken, expirationDate } = await refreshUserToken(refreshToken!);
+
+    if (!newToken) {
+      log.error("PATCH /song-request - Failed to refresh userToken");
+      context.response.status = 401;
+      context.response.body = "Unauthorized";
+      return;
+    }
+
+    userToken = newToken;
+    context.cookies.set("userToken", newToken, { sameSite: "lax" });
+    context.cookies.set("refreshToken", newRefreshToken, { sameSite: "lax" });
+    context.cookies.set("expirationDate", expirationDate.toString(), { sameSite: "lax" });
   }
 
   const { requestIds, status } = await context.request.body.json();
