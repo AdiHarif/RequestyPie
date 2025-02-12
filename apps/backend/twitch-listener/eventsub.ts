@@ -1,6 +1,7 @@
 
 import * as log from "jsr:@std/log";
 import { Context } from "jsr:@oak/oak/context";
+import { getAppToken } from "./twitch-api.ts";
 
 async function sendTwitchChatMessage(message: string, broadcasterId: string, parentMessage: string, appToken: string) {
     const feedbackRes = await fetch("https://api.twitch.tv/helix/chat/messages", {
@@ -33,7 +34,7 @@ function getTrackIdFromMessage(message: string): string {
     return trackId;
 }
 
-export async function notificationHandler(context: Context, appToken: string) {
+export async function notificationHandler(context: Context) {
     const data = await context.request.body.json();
     const message = data.event.message.text;
 
@@ -45,7 +46,7 @@ export async function notificationHandler(context: Context, appToken: string) {
         if (!trackId) {
             log.info(`!sr - Invalid song request message (message: ${message})`);
             const feedbackMessage = "Invalid song request message. Format: !sr <Spotify track link>";
-            await sendTwitchChatMessage(feedbackMessage, broadcasterId, parentMessage, appToken);
+            await sendTwitchChatMessage(feedbackMessage, broadcasterId, parentMessage, getAppToken());
             return;
         }
         log.info(`!sr - Received a song request - ${trackId} by ${data.event.chatter_user_name}`);
@@ -63,13 +64,13 @@ export async function notificationHandler(context: Context, appToken: string) {
         if (!res.ok) {
             log.error("!sr - Failed to send song request to song-request service", await res.text());
             const feedbackMessage = "Failed to send song request, please make sure the link provided is valid or try again later.";
-            await sendTwitchChatMessage(feedbackMessage, broadcasterId, parentMessage, appToken);
+            await sendTwitchChatMessage(feedbackMessage, broadcasterId, parentMessage, getAppToken());
             return;
         }
 
         const trackInfo = await res.json();
         const feedbackMessage = `Song request received: ${trackInfo.trackName} by ${trackInfo.artists}`;
-        await sendTwitchChatMessage(feedbackMessage, broadcasterId, parentMessage, appToken);
+        await sendTwitchChatMessage(feedbackMessage, broadcasterId, parentMessage, getAppToken());
         return;
     }
 }

@@ -7,7 +7,7 @@ setupLogger("twitch-listener");
 import { Application } from "jsr:@oak/oak/application";
 import { Router } from "jsr:@oak/oak/router";
 
-import { verifyMessageSignature } from "./twitch-api.ts";
+import { verifyMessageSignature, initializeAppToken, getAppToken } from "./twitch-api.ts";
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
@@ -30,28 +30,8 @@ export const db = drizzle({
 });
 
 const clientId = Deno.env.get("TWITCH_CLIENT_ID");
-const clientSecret = Deno.env.get("TWITCH_CLIENT_SECRET");
 
-//TODO: refresh this token when it expires
-const appTokenRes = await fetch("https://id.twitch.tv/oauth2/token", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-  body: new URLSearchParams({
-    "client_id": clientId!,
-    "client_secret": clientSecret!,
-    "grant_type": "client_credentials",
-  }),
-});
-
-if (!appTokenRes.ok) {
-  log.critical("Failed to get app token for Twitch API", await appTokenRes.text());
-  Deno.exit(1);
-}
-
-const appToken = (await appTokenRes.json()).access_token;
-log.info("Received new app token for Twitch API");
+await initializeAppToken();
 
 const router = new Router();
 
@@ -72,7 +52,7 @@ router.post("/eventsub", async (context) => {
       es.verificationHandler(context);
       return;
     case "notification":
-      es.notificationHandler(context, appToken);
+      es.notificationHandler(context);
       return;
     case "revocation":
       es.revocationHandler(context);
@@ -91,7 +71,7 @@ router.post("/subscriptions", async (context) => { // * subscribe to a (new) twi
   const res = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${appToken}`,
+      "Authorization": `Bearer ${getAppToken()}`,
       "Client-Id": clientId!,
       "Content-Type": "application/json",
     },
@@ -131,7 +111,7 @@ router.delete("/subscriptions/:id", async (context) => { // * unsubscribe from a
   const res = await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${eventSubId}`, {
     method: "DELETE",
     headers: {
-      "Authorization": `Bearer ${appToken}`,
+      "Authorization": `Bearer ${getAppToken()}`,
       "Client-Id": clientId!,
     },
   });
