@@ -2,6 +2,7 @@
 import * as log from "jsr:@std/log";
 import { Context } from "jsr:@oak/oak/context";
 import { getAppToken } from "./twitch-api.ts";
+import { createJWT } from "@scope/shared";
 
 async function sendTwitchChatMessage(message: string, broadcasterId: string, parentMessage: string, appToken: string) {
     const feedbackRes = await fetch("https://api.twitch.tv/helix/chat/messages", {
@@ -55,6 +56,7 @@ export async function notificationHandler(context: Context) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer: ${await createJWT()}`,
             },
             body: JSON.stringify({
                 trackId,

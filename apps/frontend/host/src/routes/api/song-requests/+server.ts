@@ -2,6 +2,8 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
 
+import { createJWT } from '$lib/jwt';
+
 export const GET: RequestHandler = async (event) => {
     const uri = 'http://localhost:8001/song-request';
 
@@ -9,7 +11,8 @@ export const GET: RequestHandler = async (event) => {
         {
             credentials: "include",
             headers: {
-                cookie: event.request.headers.get('cookie') || ''
+                cookie: event.request.headers.get('cookie') || '',
+                authorization: `Bearer: ${await createJWT()}`
             }
         }).then(res => res.json());
 
@@ -26,7 +29,8 @@ export const PATCH: RequestHandler = async (event) => {
             method: 'PATCH',
             credentials: "include",
             headers: {
-                cookie: event.request.headers.get('cookie') || ''
+                cookie: event.request.headers.get('cookie') || '',
+                authorization: `Bearer: ${await createJWT()}`
             },
             body
         });

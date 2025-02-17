@@ -1,6 +1,6 @@
 
 import * as log from "jsr:@std/log";
-import { setupLogger } from "@scope/shared";
+import { setupLogger, verifyJWTMiddleware } from "@scope/shared";
 
 setupLogger("twitch-listener");
 
@@ -35,6 +35,9 @@ await initializeAppToken();
 
 const router = new Router();
 
+const protectedRouter = new Router();
+protectedRouter.use(verifyJWTMiddleware);
+
 router.post("/eventsub", async (context) => {
   if (!await verifyMessageSignature(context.request)) {
     log.warn("Received a message with an invalid signature");
@@ -65,7 +68,7 @@ router.post("/eventsub", async (context) => {
 });
 
 
-router.post("/subscriptions", async (context) => { // * subscribe to a (new) twitch channel
+protectedRouter.post("/subscriptions", async (context) => { // * subscribe to a (new) twitch channel
   const { twitchUserId, requestyPieUserId } = await context.request.body.json();
 
   const res = await fetch("https://api.twitch.tv/helix/eventsub/subscriptions", {
@@ -105,7 +108,7 @@ router.post("/subscriptions", async (context) => { // * subscribe to a (new) twi
   context.response.body = { eventSubId };
 });
 
-router.delete("/subscriptions/:id", async (context) => { // * unsubscribe from a twitch channel
+protectedRouter.delete("/subscriptions/:id", async (context) => { // * unsubscribe from a twitch channel
   const eventSubId = context.params.id;
 
   const res = await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?id=${eventSubId}`, {
@@ -138,6 +141,9 @@ router.delete("/subscriptions/:id", async (context) => { // * unsubscribe from a
 const app = new Application();
 app.use(router.routes());
 app.use(router.allowedMethods());
+
+app.use(protectedRouter.routes());
+app.use(protectedRouter.allowedMethods());
 
 app.listen({ port: 8002 });
 

@@ -1,4 +1,4 @@
 {
   "name": "@scope/shared",
-  "exports": "./log.ts"
+  "exports": "./exports.ts"
 }

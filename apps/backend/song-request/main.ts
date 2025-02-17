@@ -1,6 +1,6 @@
 
 import * as log from "jsr:@std/log";
-import { setupLogger } from "@scope/shared";
+import { setupLogger,  verifyJWTMiddleware} from "@scope/shared";
 
 setupLogger("song-request");
 
@@ -36,7 +36,8 @@ export const db = drizzle({
   schema: { songRequestSchema },
 });
 
-const router = new Router();
+const protectedRouter = new Router();
+protectedRouter.use(verifyJWTMiddleware);
 
 async function refreshUserToken(refreshToken: string) {
   const res = await fetch(spotifyTokenUrl, {
@@ -66,7 +67,7 @@ async function refreshUserToken(refreshToken: string) {
 }
 
 
-router.get("/song-request", async (context) => {
+protectedRouter.get("/song-request", async (context) => {
   let userToken = await context.cookies.get("userToken")!;
   if (!userToken) {
     log.error("GET /song-request - Request does not contain userToken cookie");
@@ -115,7 +116,7 @@ router.get("/song-request", async (context) => {
   context.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 });
 
-router.post("/song-request", async (context) => {
+protectedRouter.post("/song-request", async (context) => {
   const { trackId, requester } = await context.request.body.json();
 
   const trackRes = await fetch(`${spotifyBaseUrl}/tracks/${trackId}`, {
@@ -147,7 +148,7 @@ router.post("/song-request", async (context) => {
   };
 });
 
-router.patch("/song-request", async (context) => {
+protectedRouter.patch("/song-request", async (context) => {
   let userToken = await context.cookies.get("userToken");
   if (!userToken) {
     log.error("PATCH /song-request - Request does not contain userToken cookie");
@@ -214,8 +215,8 @@ router.patch("/song-request", async (context) => {
 });
 
 const app = new Application();
-app.use(router.routes());
-app.use(router.allowedMethods());
+app.use(protectedRouter.routes());
+app.use(protectedRouter.allowedMethods());
 
 app.listen({ port: 8001 });
 
